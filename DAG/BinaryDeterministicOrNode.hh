@@ -82,11 +82,19 @@ public:
     out << idxCurrent << " " << (firstBranch.d)->getIdx() << " ";
     Lit *pUnit = &DAG<T>::unitLits[firstBranch.idxUnitLit];
     for( ; *pUnit != lit_Undef ; pUnit++) out << readableLit(*pUnit) << " ";
+
+    out << "; ";
+    Var *pVar = &DAG<T>::freeVariables[firstBranch.idxFreeVar];
+    for( ; *pVar != var_Undef ; pVar++) out << readableVar(*pVar) << " ";
     out << "0" << endl;
 
     out << idxCurrent << " " << (secondBranch.d)->getIdx() << " ";
     pUnit = &DAG<T>::unitLits[secondBranch.idxUnitLit];
     for( ; *pUnit != lit_Undef ; pUnit++) out << readableLit(*pUnit) << " ";
+
+    out << "; ";
+    pVar = &DAG<T>::freeVariables[secondBranch.idxFreeVar];
+    for( ; *pVar != var_Undef ; pVar++) out << readableVar(*pVar) << " ";
     out << "0" << endl;
   }// printNNF
 
