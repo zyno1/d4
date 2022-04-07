@@ -38,6 +38,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef Vec_h
 #define Vec_h
 
+#include <algorithm>
+
 #include <stdio.h>
 #include <assert.h>
 #include <new>
@@ -109,7 +111,32 @@ public:
   void initialize(int size, const T& pad);
   void copyTo(vec<T>& copy) const { copy.clear(); copy.growTo(sz); for (int i = 0; i < sz; i++) copy[i] = data[i]; }
   void moveTo(vec<T>& dest) { dest.clear(true); dest.data = data; dest.sz = sz; dest.cap = cap; data = NULL; sz = 0; cap = 0; }
+
+  template<typename F>
+  friend bool operator==(vec<F> const& lhs, vec<F> const& rhs);
 };
+
+template<typename T>
+bool operator==(vec<T> const& lhs, vec<T> const& rhs) {
+    if(lhs.size() != rhs.size()) {
+        return false;
+    }
+    if(lhs.data == rhs.data) {
+        return true;
+    }
+
+    for(int li = 0; li < lhs.size(); li++) {
+        bool found = false;
+        for(int ri = 0; ri < rhs.size() && !found; ri++) {
+            found = lhs[li] == rhs[ri];
+        }
+        if(!found) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 
 template<class T> void vec<T>::capacity(int min_cap) 

@@ -67,6 +67,10 @@ public:
     out << idxCurrent << " " << (branch.d)->getIdx() << " ";
     Lit *pUnit = &DAG<T>::unitLits[branch.idxUnitLit];
     for( ; *pUnit != lit_Undef ; pUnit++) out << readableLit(*pUnit) << " ";
+
+    out << "; ";
+    Var* pVar = &DAG<T>::freeVariables[branch.idxFreeVar];
+    for( ; *pVar != var_Undef ; pVar++) out << readableVar(*pVar) << " ";
     out << "0" << endl;
   }// printNNF
 

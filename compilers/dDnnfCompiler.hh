@@ -304,8 +304,29 @@ template <class T> class DDnnfCompiler
     (s.assumptions).push(~l);
     DAG<T> *neg = compile_(connected, priorityVar, ~l, bNeg, fromCacheNeg, idxReason);
 
+    /**
+     * TODO:
+     * compress
+     * if necessary and if possible modify cache entries (if cache entries were already there do not remove them
+     * otherwise delete them) -> find a way to delete cache entries
+     *
+     * bPos and bNeg contain on Branch units and free vars (output from compile_(...))
+     */
     (s.assumptions).pop();
     (s.cancelUntil)((s.assumptions).size());
+
+    bPos.units.clear();
+    bPos.units.push(l);
+
+    bNeg.units.clear();
+    bNeg.units.push(~l);
+
+    if(neg == pos && bPos.free == bNeg.free) {
+        bPos.units.clear(true);
+        bPos.free.push(var(l));
+        auto ret = new UnaryNode<T>(pos, bPos.units, bPos.free);
+        return ret;
+    }
 
     DAG<T> *ret = createObjectDecisionNode(pos, bPos, fromCachePos, neg, bNeg, fromCacheNeg, idxReason);
     return ret;
