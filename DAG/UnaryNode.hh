@@ -54,6 +54,7 @@ public:
     return branch.d->getSize_();
   }
 
+  virtual inline bool isUnaryNode() { return true; }
 
   inline void printNNF(std::ostream& out, bool certif)
   {

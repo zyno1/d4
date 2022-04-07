@@ -200,6 +200,7 @@ template <class T> class DDnnfCompiler
 
           ret = compileDecisionNode(connected, currPriority);
           andDecomposition.push(ret);
+          //if(localCache && !ret->isUnaryNode()) cache->addInCache(cb, ret);
           if(localCache) cache->addInCache(cb, ret);
         }
         occManager->popPreviousClauseSet();
@@ -322,10 +323,44 @@ template <class T> class DDnnfCompiler
     bNeg.units.push(~l);
 
     if(neg == pos && bPos.free == bNeg.free) {
-        bPos.units.clear(true);
+        bPos.units.clear();
         bPos.free.push(var(l));
+        if(pos->isUnaryNode()) {
+            UnaryNode<T> u = pos;
+            bPos.free.capacity(bPos.free.size() + u.branch.nbFree());
+
+            Var* vf = &DAG<T>::freeVariables[u.branch.idxFreeVar];
+            for(int i = 0; vf[i] != var_Undef; i++) {
+                bPos.free.push(vf[i]);
+            }
+
+            pos = u.branch.d;
+        }
         auto ret = new UnaryNode<T>(pos, bPos.units, bPos.free);
         return ret;
+    }
+
+    if(pos->isUnaryNode()) {
+      UnaryNode<T> u = pos;
+      bPos.free.capacity(bPos.free.size() + u.branch.nbFree());
+
+      Var* vf = &DAG<T>::freeVariables[u.branch.idxFreeVar];
+      for(int i = 0; vf[i] != var_Undef; i++) {
+          bPos.free.push(vf[i]);
+      }
+
+      pos = u.branch.d;
+    }
+    if(neg->isUnaryNode()) {
+      UnaryNode<T> u = neg;
+      bNeg.free.capacity(bNeg.free.size() + u.branch.nbFree());
+
+      Var* vf = &DAG<T>::freeVariables[u.branch.idxFreeVar];
+      for(int i = 0; vf[i] != var_Undef; i++) {
+          bNeg.free.push(vf[i]);
+      }
+
+      neg = u.branch.d;
     }
 
     DAG<T> *ret = createObjectDecisionNode(pos, bPos, fromCachePos, neg, bNeg, fromCacheNeg, idxReason);
