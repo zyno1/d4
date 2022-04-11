@@ -62,7 +62,7 @@ public:
     stamp = globalStamp + idxOutputStruct + 1;
     int idxCurrent = ++idxOutputStruct;
 
-    out << "o " << idxCurrent << " 0" << endl;
+    out << "u " << idxCurrent << " 0" << endl;
 
     branch.printNNF(out, certif);
     out << idxCurrent << " " << (branch.d)->getIdx() << " ";
