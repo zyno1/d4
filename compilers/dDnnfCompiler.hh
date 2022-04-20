@@ -19,6 +19,7 @@
 #define COMPILERS_DDNNF_COMPILER
 
 #include <iostream>
+#include <memory>
 #include <boost/multiprecision/gmp.hpp>
 
 #include "../interfaces/OccurrenceManagerInterface.hh"
@@ -82,7 +83,7 @@ private:
     unsigned int nbDecisionNode;
     unsigned int nbDomainConstraintNode;
     unsigned int nbAndNode, nbAndMinusNode;
-    CacheCNF<DAG<T> *> *cache;
+    std::unique_ptr<CacheCNF<std::shared_ptr<DAG<T> > > > cache;
 
     vec<unsigned> stampVar;
     vec<bool> alreadyAdd;
@@ -96,25 +97,25 @@ private:
     bool isCertified;
 
     VariableHeuristicInterface *vs;
-    BucketManager<DAG<T> *> *bm;
+    BucketManager<std::shared_ptr<DAG<T> > > *bm;
     PartitionerInterface *pv;
 
     EquivManager em;
 
-    DAG<T> *globalTrueNode, *globalFalseNode;
+    std::shared_ptr<DAG<T> > globalTrueNode, globalFalseNode;
 
     Solver s;
     OccurrenceManagerInterface *occManager;
     vec<vec<Lit> > clauses;
 
     bool initUnsat;
-    TmpEntry<DAG<T> *> NULL_CACHE_ENTRY;
+    TmpEntry<std::shared_ptr<DAG<T> > > NULL_CACHE_ENTRY;
 
 
     /**
        Manage the case where it is unsatisfiable.
     */
-    DAG<T>* manageUnsat(Lit l, onTheBranch &onB, vec<int> &idxReason)
+    std::shared_ptr<DAG<T> > manageUnsat(Lit l, onTheBranch &onB, vec<int> &idxReason)
     {
         // we need to get a reason for why the problem is unsat.
         onB.units.push(l);
@@ -135,7 +136,7 @@ private:
 
        \return a compiled formula (fpibdd or fbdd w.r.t. the options selected).
     */
-    DAG<T>* compile_(vec<Var> &setOfVar, vec<Var> &priorityVar, Lit dec, onTheBranch &onB,
+    std::shared_ptr<DAG<T> > compile_(vec<Var> &setOfVar, vec<Var> &priorityVar, Lit dec, onTheBranch &onB,
                      bool &fromCache, vec<int> &idxReason)
     {
         fromCache = false;
@@ -159,7 +160,7 @@ private:
         }
 
         vec<bool> comeFromCache;
-        DAG<T> *ret = NULL;
+        std::shared_ptr<DAG<T> > *ret = nullptr;
         if(!nbComponent)
         {
             comeFromCache.push(false);
@@ -168,7 +169,7 @@ private:
         else
         {
             // we considere each component one by one
-            vec<DAG<T> *> andDecomposition;
+            vec<std::shared_ptr<DAG<T> > > andDecomposition;
 
             nbSplit += (nbComponent > 1) ? nbComponent : 0;
             for(int cp = 0 ; cp<nbComponent ; cp++)
@@ -177,7 +178,7 @@ private:
                 bool localCache = optCached;
 
                 occManager->updateCurrentClauseSet(connected);
-                TmpEntry<DAG<T> *> cb = (localCache) ? cache->searchInCache(connected, bm) : NULL_CACHE_ENTRY;
+                TmpEntry<std::shared_ptr<DAG<T> > > cb = (localCache) ? cache->searchInCache(connected, bm) : NULL_CACHE_ENTRY;
 
                 if(localCache && cb.defined)
                 {
@@ -244,14 +245,14 @@ private:
     /**
        Create a decision node in purpose.
     */
-    DAG<T> *createObjectDecisionNode(DAG<T> *pos, onTheBranch &bPos, bool fromCachePos,
-                                     DAG<T> *neg, onTheBranch &bNeg, bool fromCacheNeg,
+    std::shared_ptr<DAG<T> > createObjectDecisionNode(std::shared_ptr<DAG<T> > pos, onTheBranch &bPos, bool fromCachePos,
+                                                      std::shared_ptr<DAG<T> > neg, onTheBranch &bNeg, bool fromCacheNeg,
                                      vec<int> &idxReason)
     {
         if(isCertified)
-            return new BinaryDeterministicOrNodeCertified<T>(pos, bPos.units, bPos.free, fromCachePos,
+            return std::make_shared<BinaryDeterministicOrNodeCertified<T> >(pos, bPos.units, bPos.free, fromCachePos,
                                                              neg, bNeg.units, bNeg.free, fromCacheNeg, idxReason);
-        return new BinaryDeterministicOrNode<T>(pos, bPos.units, bPos.free, neg, bNeg.units, bNeg.free);
+        return std::make_shared<BinaryDeterministicOrNode<T> >(pos, bPos.units, bPos.free, neg, bNeg.units, bNeg.free);
     }// createDecisionNode
 
 
@@ -261,7 +262,7 @@ private:
        @param[in] connected, the set of variable present in the current problem
        \return the compiled formula
     */
-    DAG<T> *compileDecisionNode(vec<Var> &connected, vec<Var> &priorityVar)
+    std::shared_ptr<DAG<T> > compileDecisionNode(vec<Var> &connected, vec<Var> &priorityVar)
     {
         if(s.assumptions.size() && s.assumptions.size() < 5){cout << "c top 5: "; showListLit(s.assumptions);}
 
@@ -297,13 +298,13 @@ private:
         // compile the formula where l is assigned to true
         assert(s.value(l) == l_Undef);
         (s.assumptions).push(l);
-        DAG<T> *pos = compile_(connected, priorityVar, l, bPos, fromCachePos, idxReason);
+        std::shared_ptr<DAG<T> > pos = compile_(connected, priorityVar, l, bPos, fromCachePos, idxReason);
         (s.assumptions).pop();
         (s.cancelUntil)((s.assumptions).size());
 
         // compile the formula where l is assigned to true
         (s.assumptions).push(~l);
-        DAG<T> *neg = compile_(connected, priorityVar, ~l, bNeg, fromCacheNeg, idxReason);
+        std::shared_ptr<DAG<T> > neg = compile_(connected, priorityVar, ~l, bNeg, fromCacheNeg, idxReason);
 
         (s.assumptions).pop();
         (s.cancelUntil)((s.assumptions).size());
@@ -367,11 +368,11 @@ private:
 
                 pos = u.branch.d;
             }*/
-            auto ret = new UnaryNode<T>(pos, bPos.units, bPos.free);
+            auto ret = std::make_shared<UnaryNode<T> >(pos, bPos.units, bPos.free);
             return ret;
         }
 
-        DAG<T> *ret = createObjectDecisionNode(pos, bPos, fromCachePos, neg, bNeg, fromCacheNeg, idxReason);
+        std::shared_ptr<DAG<T> > ret = createObjectDecisionNode(pos, bPos, fromCachePos, neg, bNeg, fromCacheNeg, idxReason);
         return ret;
     }// compileDecisionNode
 
@@ -430,7 +431,7 @@ private:
 
     inline void separator(){ printf("c "); for(int i = 0 ; i<NB_SEP_DNNF_COMPILER ; i++) printf("-"); printf("\n");}
 
-    inline DAG<T> *createTrueNode(vec<Var> &setOfVar)
+    inline std::shared_ptr<DAG<T> > createTrueNode(vec<Var> &setOfVar)
     {
         vec<Lit> unitLit;
         s.collectUnit(setOfVar, unitLit); // collect unit literals
@@ -447,7 +448,7 @@ private:
                 if(s.value(v) != l_Undef && s.reason(v) != CRef_Undef) idxReason.push(s.ca[s.reason(v)].idxReason());
             }
 
-            return new UnaryNodeCertified<T>(globalTrueNode, unitLit, false, idxReason, freeVar);
+            return std::make_shared<UnaryNodeCertified<T> >(globalTrueNode, unitLit, false, idxReason, freeVar);
         }
         return globalTrueNode;
     }// createTrueNode
@@ -491,13 +492,14 @@ public:
             occManager = new DynamicOccurrenceManager(clauses, s.nVars());
 
             freqLimitDyn = optList.freqLimitDyn;
-            cache = new CacheCNF<DAG<T> *>(optList.reduceCache, optList.strategyRedCache);
+            //cache = new CacheCNF<DAG<T> *>(optList.reduceCache, optList.strategyRedCache);
+            cache = std::make_unique<CacheCNF<std::shared_ptr<DAG<T> > > >(optList.reduceCache, optList.strategyRedCache);
             cache->initHashTable(occManager->getNbVariable(), occManager->getNbClause(),
                                  occManager->getMaxSizeClause());
 
             vs = new VariableHeuristicInterface(s, occManager, optList.varHeuristic,
                                                 optList.phaseHeuristic, isProjectedVar);
-            bm = new BucketManager<DAG<T> *>(occManager, optList.strategyRedCache);
+            bm = new BucketManager<std::shared_ptr<DAG<T> > >(occManager, optList.strategyRedCache);
             pv = PartitionerInterface::getPartitioner(s, occManager, optList);
 
             alreadyAdd.initialize(s.nVars(), false);
@@ -506,8 +508,8 @@ public:
             stampVar.initialize(s.nVars(), 0);
             em.initEquivManager(s.nVars());
 
-            globalTrueNode = new trueNode<T>();
-            globalFalseNode = new falseNode<T>();
+            globalTrueNode = std::make_shared<trueNode<T> >();
+            globalFalseNode = std::make_shared<falseNode<T> >();
 
             // statistics initialization
             minAffectedAndNode = s.nVars();
@@ -536,10 +538,10 @@ public:
 
        \return a DAG
     */
-    rootNode<T>* compile()
+    std::unique_ptr<rootNode<T> > compile()
     {
-        DAG<T>* d = NULL;
-        rootNode<T> *root = new rootNode<T>(s.nVars());
+        std::shared_ptr<DAG<T> > d = nullptr;
+        auto root = std::make_unique<rootNode<T> >(s.nVars());
         vec<Var> freeVariable, setOfVar, priorityVar;
         DAG<T>::initSizeVector(s.nVars());
         vec<int> idxReason;

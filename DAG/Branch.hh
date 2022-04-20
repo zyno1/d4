@@ -19,6 +19,7 @@
 #define Minisat_DAG_Branch_h
 
 #include <iostream>
+#include <memory>
 using namespace std;
 
 #include "../utils/SolverTypes.hh"
@@ -30,20 +31,20 @@ template<class T> class Branch
 {
 public:
   int idxUnitLit, idxFreeVar;
-  DAG<T> *d;
+  std::shared_ptr<DAG<T> > d;
   static Solver *s;
 
-  inline void initBranch(vec<Lit> &units, DAG<T> *_d, vec<Var> &fVar)
+  inline void initBranch(vec<Lit> &units, std::shared_ptr<DAG<T> > _d, vec<Var> &fVar)
   {
     assert(_d);
-    d = _d;
+    d = std::move(_d);
     idxUnitLit = d->saveUnitLit(units);
     idxFreeVar = d->saveFreeVar(fVar);
   }// initBranch
 
-  inline void initBranch(DAG<T> *_d)
+  inline void initBranch(std::shared_ptr<DAG<T> > _d)
   {
-    d = _d;
+    d = std::move(_d);
     idxUnitLit = idxFreeVar = 0;
   }// initBranch
 
