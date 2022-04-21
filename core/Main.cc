@@ -78,7 +78,7 @@ template<typename T> void modelCounting(vec<vec<Lit> > &clauses, vec<double> &we
 }// modelCounting
 
 
-template<typename T> void runQueries(DAG<T> & t)
+template<typename T> void runQueries(DAG<T> * t)
 {
   vec<Lit> queryRead;
 
@@ -137,7 +137,7 @@ template<typename T> void compileDDNNF(vec<vec<Lit> > &cls, vec<double> &wLit, O
   std::unique_ptr<DAG<T> > t = dDnnfCompiler->compile();
   if(out != nullptr) t->printNNF(*out, dratOut);
 
-  if(query) runQueries<T>(*t);
+  if(query) runQueries<T>(t.get());
   else
     {
       T t1 = t->computeNbModels();

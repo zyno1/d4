@@ -18,6 +18,7 @@
 #ifndef Minisat_DAG_UnaryNode_h
 #define Minisat_DAG_UnaryNode_h
 
+#include <memory>
 #include "DeterministicOrNode.hh"
 #include "DAG.hh"
 
@@ -34,18 +35,18 @@ public:
   bool saveDecision;
   Branch<T> branch;
 
-  inline void assignBranch(DAG<T> *d, vec<Lit> &units, vec<Var> &fVar)
+  inline void assignBranch(std::shared_ptr<DAG<T> > d, vec<Lit> &units, vec<Var> &fVar)
   {
     branch.initBranch(units, d, fVar);
     nbEdges++;
   }
 
-  UnaryNode(DAG<T> *l)
+  UnaryNode(std::shared_ptr<DAG<T> > l)
   {
     branch.initBranch(l);
   }
 
-  UnaryNode(DAG<T> *l, vec<Lit> &unitLit, vec<Var> &freeVar){assignBranch(l, unitLit, freeVar);}
+  UnaryNode(std::shared_ptr<DAG<T> > l, vec<Lit> &unitLit, vec<Var> &freeVar){assignBranch(l, unitLit, freeVar);}
 
   inline int getSize_()
   {

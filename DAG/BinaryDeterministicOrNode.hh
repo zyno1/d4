@@ -18,6 +18,7 @@
 #ifndef Minisat_DAG_BinaryDetermOrNode_h
 #define Minisat_DAG_BinaryDetermOrNode_h
 
+#include <memory>
 #include "DeterministicOrNode.hh"
 #include "DAG.hh"
 
@@ -34,13 +35,13 @@ public:
   Branch<T> firstBranch, secondBranch;
   T nbModels;
 
-  inline void assignFirstBranch(DAG<T> *d, vec<Lit> &units, vec<Var> &fVar)
+  inline void assignFirstBranch(std::shared_ptr<DAG<T> > d, vec<Lit> &units, vec<Var> &fVar)
   {
     firstBranch.initBranch(units, d, fVar);
     nbEdges++;
   }
 
-  inline void assignSecondBranch(DAG<T> *d, vec<Lit> &units, vec<Var> &fVar)
+  inline void assignSecondBranch(std::shared_ptr<DAG<T> > d, vec<Lit> &units, vec<Var> &fVar)
   {
     secondBranch.initBranch(units, d, fVar);
     nbEdges++;
@@ -48,13 +49,13 @@ public:
 
   BinaryDeterministicOrNode(){}
 
-  BinaryDeterministicOrNode(DAG<T> *l, DAG<T> *r)
+  BinaryDeterministicOrNode(std::shared_ptr<DAG<T> > l, std::shared_ptr<DAG<T> > r)
   {
     firstBranch.initBranch(l);
     secondBranch.initBranch(r);
   }
 
-  BinaryDeterministicOrNode(DAG<T> *l, vec<Lit> &unitLitL, vec<Var> &freeVarL, DAG<T> *r, vec<Lit> &unitLitR,
+  BinaryDeterministicOrNode(std::shared_ptr<DAG<T> > l, vec<Lit> &unitLitL, vec<Var> &freeVarL, std::shared_ptr<DAG<T> > r, vec<Lit> &unitLitR,
                             vec<Var> &freeVarR)
   {
     assignFirstBranch(l, unitLitL, freeVarL);

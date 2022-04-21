@@ -18,6 +18,7 @@
 #ifndef Minisat_DAG_UnaryNodeCertified_h
 #define Minisat_DAG_UnaryNodeCertified_h
 
+#include <memory>
 #include "DeterministicOrNode.hh"
 #include "DAG.hh"
 
@@ -36,14 +37,14 @@ public:
   vec<int> reasonForUnits;
   bool fromCache;
 
-  UnaryNodeCertified(DAG<T> *l)
+  UnaryNodeCertified(std::shared_ptr<DAG<T> > l)
   {
     if(!l->creator) l->creator = this;
     branch.initBranch(l);
     fromCache = false;
   }
 
-  UnaryNodeCertified(DAG<T> *l, vec<Lit> &unitLit, bool fromCache_, vec<int> &idxReason, vec<Var> &freeVar)
+  UnaryNodeCertified(std::shared_ptr<DAG<T> > l, vec<Lit> &unitLit, bool fromCache_, vec<int> &idxReason, vec<Var> &freeVar)
   {
     branch.initBranch(unitLit, l, freeVar);
     nbEdges++;

@@ -18,6 +18,7 @@
 #ifndef Minisat_DAG_BinaryDetermOrNodeCertified_h
 #define Minisat_DAG_BinaryDetermOrNodeCertified_h
 
+#include <memory>
 #include "DeterministicOrNode.hh"
 #include "DAG.hh"
 
@@ -36,13 +37,13 @@ public:
   vec<int> reasonForUnits;
   bool fromCacheL, fromCacheR;
 
-  inline void assignFirstBranch(DAG<T> *d, vec<Lit> &units, vec<Var> &fVar)
+  inline void assignFirstBranch(std::shared_ptr<DAG<T> > d, vec<Lit> &units, vec<Var> &fVar)
   {
     firstBranch.initBranch(units, d, fVar);
     nbEdges++;
   }
 
-  inline void assignSecondBranch(DAG<T> *d, vec<Lit> &units, vec<Var> &fVar)
+  inline void assignSecondBranch(std::shared_ptr<DAG<T> > d, vec<Lit> &units, vec<Var> &fVar)
   {
     secondBranch.initBranch(units, d, fVar);
     nbEdges++;
@@ -50,7 +51,7 @@ public:
 
   BinaryDeterministicOrNodeCertified(){}
 
-  BinaryDeterministicOrNodeCertified(DAG<T> *l, DAG<T> *r)
+  BinaryDeterministicOrNodeCertified(std::shared_ptr<DAG<T> > l, std::shared_ptr<DAG<T> > r)
   {
     firstBranch.initBranch(l);
     secondBranch.initBranch(r);
@@ -58,8 +59,8 @@ public:
     fromCacheL = false;
   }
 
-  BinaryDeterministicOrNodeCertified(DAG<T> *l, vec<Lit> &unitLitL, vec<Var> &freeVarL, bool fromCacheL_,
-                 DAG<T> *r, vec<Lit> &unitLitR, vec<Var> &freeVarR, bool fromCacheR_, vec<int> &idxReason)
+  BinaryDeterministicOrNodeCertified(std::shared_ptr<DAG<T> > l, vec<Lit> &unitLitL, vec<Var> &freeVarL, bool fromCacheL_,
+                                     std::shared_ptr<DAG<T> > r, vec<Lit> &unitLitR, vec<Var> &freeVarR, bool fromCacheR_, vec<int> &idxReason)
   {
     assignFirstBranch(l, unitLitL, freeVarL);
     assignSecondBranch(r, unitLitR, freeVarR);

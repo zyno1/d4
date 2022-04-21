@@ -160,7 +160,7 @@ private:
         }
 
         vec<bool> comeFromCache;
-        std::shared_ptr<DAG<T> > *ret = nullptr;
+        std::shared_ptr<DAG<T> > ret = nullptr;
         if(!nbComponent)
         {
             comeFromCache.push(false);
@@ -215,8 +215,8 @@ private:
             }
             else
             {
-                if(isCertified) ret = new DecomposableAndNodeCertified<T>(andDecomposition, comeFromCache);
-                else ret = new DecomposableAndNode<T>(andDecomposition);
+                if(isCertified) ret = std::make_shared<DecomposableAndNodeCertified<T> >(andDecomposition, comeFromCache);
+                else ret = std::make_shared<DecomposableAndNode<T> >(andDecomposition);
                 nbAndNode++;
 
                 // statistics
@@ -316,7 +316,7 @@ private:
         bNeg.units.push(~l);
 
         while(pos->isUnaryNode()) {
-            auto u = (UnaryNode<T>*)pos;
+            auto u = std::dynamic_pointer_cast<UnaryNode<T> >(pos);
             bPos.free.capacity(bPos.free.size() + u->branch.nbFree());
 
             Var* vf = &DAG<T>::freeVariables[u->branch.idxFreeVar];
@@ -335,7 +335,7 @@ private:
             pos = u->branch.d;
         }
         while(neg->isUnaryNode()) {
-            auto u = (UnaryNode<T>*)neg;
+            auto u = std::dynamic_pointer_cast<UnaryNode<T> >(neg);
             bNeg.free.capacity(bNeg.free.size() + u->branch.nbFree());
 
             Var* vf = &DAG<T>::freeVariables[u->branch.idxFreeVar];
@@ -438,7 +438,7 @@ private:
         if(unitLit.size())
         {
             vec<Var> freeVar;
-            if(!isCertified) return new UnaryNode<T>(globalTrueNode, unitLit, freeVar);
+            if(!isCertified) return std::make_shared<UnaryNode<T> >(globalTrueNode, unitLit, freeVar);
 
             vec<int> idxReason;
             assert(s.decisionLevel() == s.assumptions.size());
@@ -546,7 +546,7 @@ public:
         DAG<T>::initSizeVector(s.nVars());
         vec<int> idxReason;
 
-        if(initUnsat) root->assignRootNode(s.trail, new falseNode<T>(), false, s.nVars(), freeVariable, idxReason);
+        if(initUnsat) root->assignRootNode(s.trail, std::make_shared<falseNode<T> >(), false, s.nVars(), freeVariable, idxReason);
         else
         {
             bool fromCache = false;
