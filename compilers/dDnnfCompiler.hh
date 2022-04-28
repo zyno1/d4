@@ -83,7 +83,7 @@ private:
     unsigned int nbDecisionNode;
     unsigned int nbDomainConstraintNode;
     unsigned int nbAndNode, nbAndMinusNode;
-    std::unique_ptr<CacheCNF<std::shared_ptr<DAG<T> > > > cache;
+    std::unique_ptr<CacheCNF<std::weak_ptr<DAG<T> > > > cache;
 
     vec<unsigned> stampVar;
     vec<bool> alreadyAdd;
@@ -97,7 +97,7 @@ private:
     bool isCertified;
 
     VariableHeuristicInterface *vs;
-    BucketManager<std::shared_ptr<DAG<T> > > *bm;
+    BucketManager<std::weak_ptr<DAG<T> > > *bm;
     PartitionerInterface *pv;
 
     EquivManager em;
@@ -109,7 +109,7 @@ private:
     vec<vec<Lit> > clauses;
 
     bool initUnsat;
-    TmpEntry<std::shared_ptr<DAG<T> > > NULL_CACHE_ENTRY;
+    TmpEntry<std::weak_ptr<DAG<T> > > NULL_CACHE_ENTRY;
 
 
     /**
@@ -178,12 +178,12 @@ private:
                 bool localCache = optCached;
 
                 occManager->updateCurrentClauseSet(connected);
-                TmpEntry<std::shared_ptr<DAG<T> > > cb = (localCache) ? cache->searchInCache(connected, bm) : NULL_CACHE_ENTRY;
+                TmpEntry<std::weak_ptr<DAG<T> > > cb = (localCache) ? cache->searchInCache(connected, bm) : NULL_CACHE_ENTRY;
 
-                if(localCache && cb.defined)
+                if(localCache && cb.defined && !cb.getValue().expired())
                 {
                     comeFromCache.push(true);
-                    andDecomposition.push(cb.getValue());
+                    andDecomposition.push(cb.getValue().lock());
                 }
                 else
                 {
@@ -493,13 +493,13 @@ public:
 
             freqLimitDyn = optList.freqLimitDyn;
             //cache = new CacheCNF<DAG<T> *>(optList.reduceCache, optList.strategyRedCache);
-            cache = std::make_unique<CacheCNF<std::shared_ptr<DAG<T> > > >(optList.reduceCache, optList.strategyRedCache);
+            cache = std::make_unique<CacheCNF<std::weak_ptr<DAG<T> > > >(optList.reduceCache, optList.strategyRedCache);
             cache->initHashTable(occManager->getNbVariable(), occManager->getNbClause(),
                                  occManager->getMaxSizeClause());
 
             vs = new VariableHeuristicInterface(s, occManager, optList.varHeuristic,
                                                 optList.phaseHeuristic, isProjectedVar);
-            bm = new BucketManager<std::shared_ptr<DAG<T> > >(occManager, optList.strategyRedCache);
+            bm = new BucketManager<std::weak_ptr<DAG<T> > >(occManager, optList.strategyRedCache);
             pv = PartitionerInterface::getPartitioner(s, occManager, optList);
 
             alreadyAdd.initialize(s.nVars(), false);
