@@ -83,7 +83,7 @@ private:
     unsigned int nbDecisionNode;
     unsigned int nbDomainConstraintNode;
     unsigned int nbAndNode, nbAndMinusNode;
-    std::unique_ptr<CacheCNF<std::weak_ptr<DAG<T> > > > cache;
+    CacheCNF<std::weak_ptr<DAG<T> > >* cache;
 
     vec<unsigned> stampVar;
     vec<bool> alreadyAdd;
@@ -493,7 +493,7 @@ public:
 
             freqLimitDyn = optList.freqLimitDyn;
             //cache = new CacheCNF<DAG<T> *>(optList.reduceCache, optList.strategyRedCache);
-            cache = std::make_unique<CacheCNF<std::weak_ptr<DAG<T> > > >(optList.reduceCache, optList.strategyRedCache);
+            cache = new CacheCNF<std::weak_ptr<DAG<T> > >(optList.reduceCache, optList.strategyRedCache);
             cache->initHashTable(occManager->getNbVariable(), occManager->getNbClause(),
                                  occManager->getMaxSizeClause());
 
