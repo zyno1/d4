@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <memory>
+#include <vector>
 #include <boost/multiprecision/gmp.hpp>
 
 #include "../interfaces/OccurrenceManagerInterface.hh"
@@ -169,7 +170,7 @@ private:
         else
         {
             // we considere each component one by one
-            vec<std::shared_ptr<DAG<T> > > andDecomposition;
+            std::vector<std::shared_ptr<DAG<T> > > andDecomposition;
 
             nbSplit += (nbComponent > 1) ? nbComponent : 0;
             for(int cp = 0 ; cp<nbComponent ; cp++)
@@ -183,7 +184,7 @@ private:
                 if(localCache && cb.defined && !cb.getValue().expired())
                 {
                     comeFromCache.push(true);
-                    andDecomposition.push(cb.getValue().lock());
+                    andDecomposition.push_back(cb.getValue().lock());
                 }
                 else
                 {
@@ -200,7 +201,7 @@ private:
                             currPriority.push(priorityVar[i]);
 
                     ret = compileDecisionNode(connected, currPriority);
-                    andDecomposition.push(ret);
+                    andDecomposition.push_back(ret);
                     //if(localCache && !ret->isUnaryNode()) cache->addInCache(cb, ret);
                     if(localCache) cache->addInCache(cb, ret);
                 }

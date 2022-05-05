@@ -20,6 +20,7 @@
 
 #include <string>
 #include <memory>
+#include <vector>
 #include "DAG.hh"
 
 #define BLOCK_ALLOC_ALL_CHILDREN 1<<20
@@ -43,7 +44,7 @@ public:
     unsigned posInAllChildren:32;
   } header;
 
-  DecomposableAndNode(vec<std::shared_ptr<DAG<T> > > &sons)
+  DecomposableAndNode(std::vector<std::shared_ptr<DAG<T> > > &sons)
   {
     header.szChildren = sons.size();
     header.posInAllChildren = giveMeEmplacementChildren(sons.size());

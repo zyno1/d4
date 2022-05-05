@@ -20,6 +20,7 @@
 
 #include <string>
 #include <memory>
+#include <vector>
 #include "DAG.hh"
 
 #define BLOCK_ALLOC_ALL_CHILDREN 1<<20
@@ -44,7 +45,7 @@ public:
     unsigned posInAllChildren:32;
   } header;
 
-  DecomposableAndNodeCertified(vec<std::shared_ptr<DAG<T> > > &sons, vec<bool> &comeFromCache_)
+  DecomposableAndNodeCertified(std::vector<std::shared_ptr<DAG<T> > > &sons, vec<bool> &comeFromCache_)
   {
     comeFromCache_.copyTo(comeFromCache);
     header.szChildren = sons.size();
