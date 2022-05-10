@@ -310,67 +310,70 @@ private:
         (s.assumptions).pop();
         (s.cancelUntil)((s.assumptions).size());
 
-        bPos.units.clear();
-        bPos.units.push(l);
-
-        bNeg.units.clear();
-        bNeg.units.push(~l);
-
-        while(pos->isUnaryNode()) {
-            auto u = std::dynamic_pointer_cast<UnaryNode<T> >(pos);
-            bPos.free.capacity(bPos.free.size() + u->branch.nbFree());
-
-            Var* vf = &DAG<T>::freeVariables[u->branch.idxFreeVar];
-            for(int i = 0; vf[i] != var_Undef; i++) {
-                bPos.free.push(vf[i]);
-            }
-
-            if(pos == u->branch.d) {
-                std::cout << "## pos error " << var(bPos.units[0]) << " (" ;
-                for(int i = 0; i < bPos.free.size(); i++) {
-                    std::cout << " " << i;
-                }
-                std::cout << ")\n";
-                break;
-            }
-            pos = u->branch.d;
-        }
-        while(neg->isUnaryNode()) {
-            auto u = std::dynamic_pointer_cast<UnaryNode<T> >(neg);
-            bNeg.free.capacity(bNeg.free.size() + u->branch.nbFree());
-
-            Var* vf = &DAG<T>::freeVariables[u->branch.idxFreeVar];
-            for(int i = 0; vf[i] != var_Undef; i++) {
-                bNeg.free.push(vf[i]);
-            }
-
-            if(neg == u->branch.d) {
-                std::cout << "## neg error " << var(bNeg.units[0]) << " (" ;
-                for(int i = 0; i < bNeg.free.size(); i++) {
-                    std::cout << " " << i;
-                }
-                std::cout << ")\n";
-                break;
-            }
-            neg = u->branch.d;
-        }
-
-        if(neg == pos && bPos.free == bNeg.free) {
+        // Compress
+        if(true) {
             bPos.units.clear();
-            bPos.free.push(var(l));
-            /*if(pos->isUnaryNode()) {
-                UnaryNode<T> u = pos;
-                bPos.free.capacity(bPos.free.size() + u.branch.nbFree());
+            bPos.units.push(l);
 
-                Var* vf = &DAG<T>::freeVariables[u.branch.idxFreeVar];
-                for(int i = 0; vf[i] != var_Undef; i++) {
+            bNeg.units.clear();
+            bNeg.units.push(~l);
+
+            while (pos->isUnaryNode()) {
+                auto u = std::dynamic_pointer_cast<UnaryNode<T> >(pos);
+                bPos.free.capacity(bPos.free.size() + u->branch.nbFree());
+
+                Var *vf = &DAG<T>::freeVariables[u->branch.idxFreeVar];
+                for (int i = 0; vf[i] != var_Undef; i++) {
                     bPos.free.push(vf[i]);
                 }
 
-                pos = u.branch.d;
-            }*/
-            auto ret = std::make_shared<UnaryNode<T> >(pos, bPos.units, bPos.free);
-            return ret;
+                if (pos == u->branch.d) {
+                    std::cout << "## pos error " << var(bPos.units[0]) << " (";
+                    for (int i = 0; i < bPos.free.size(); i++) {
+                        std::cout << " " << i;
+                    }
+                    std::cout << ")\n";
+                    break;
+                }
+                pos = u->branch.d;
+            }
+            while (neg->isUnaryNode()) {
+                auto u = std::dynamic_pointer_cast<UnaryNode<T> >(neg);
+                bNeg.free.capacity(bNeg.free.size() + u->branch.nbFree());
+
+                Var *vf = &DAG<T>::freeVariables[u->branch.idxFreeVar];
+                for (int i = 0; vf[i] != var_Undef; i++) {
+                    bNeg.free.push(vf[i]);
+                }
+
+                if (neg == u->branch.d) {
+                    std::cout << "## neg error " << var(bNeg.units[0]) << " (";
+                    for (int i = 0; i < bNeg.free.size(); i++) {
+                        std::cout << " " << i;
+                    }
+                    std::cout << ")\n";
+                    break;
+                }
+                neg = u->branch.d;
+            }
+
+            if (neg == pos && bPos.free == bNeg.free) {
+                bPos.units.clear();
+                bPos.free.push(var(l));
+                if (pos->isUnaryNode()) {
+                    UnaryNode<T> u = pos;
+                    bPos.free.capacity(bPos.free.size() + u.branch.nbFree());
+
+                    Var *vf = &DAG<T>::freeVariables[u.branch.idxFreeVar];
+                    for (int i = 0; vf[i] != var_Undef; i++) {
+                        bPos.free.push(vf[i]);
+                    }
+
+                    pos = u.branch.d;
+                }
+                auto ret = std::make_shared<UnaryNode<T> >(pos, bPos.units, bPos.free);
+                return ret;
+            }
         }
 
         std::shared_ptr<DAG<T> > ret = createObjectDecisionNode(pos, bPos, fromCachePos, neg, bNeg, fromCacheNeg, idxReason);

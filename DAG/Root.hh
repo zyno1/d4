@@ -90,6 +90,9 @@ public:
 
     Lit *pUnit = &DAG<T>::unitLits[b.idxUnitLit];
     for( ; *pUnit != lit_Undef ; pUnit++) out << readableLit(*pUnit) << " ";
+    out << "; ";
+    Var* pVar = &DAG<T>::freeVariables[b.idxFreeVar];
+    for( ; *pVar != var_Undef ; pVar++) out << readableVar(*pVar) << " ";
     out << "0" << endl;
 
     globalStamp += idxOutputStruct;
