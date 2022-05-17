@@ -33,26 +33,51 @@ template<class T> class UnaryNode : public DAG<T>
 public:
   T nbModels;
   bool saveDecision;
-  Branch<T> branch;
+  //Branch<T> branch;
+  std::shared_ptr<DAG<T> > child;
+  std::vector<Lit> units;
+  std::vector<Var> free;
 
   inline void assignBranch(std::shared_ptr<DAG<T> > d, vec<Lit> &units, vec<Var> &fVar)
   {
-    branch.initBranch(units, d, fVar);
+    //branch.initBranch(units, d, fVar);
     nbEdges++;
+    child = d;
+    this->units.clear();
+    this->free.clear();
+
+    this->units.reserve(units.size());
+    this->free.reserve(fVar.size());
+
+    for(int i = 0; i < units.size(); i++) {
+        this->units.push_back(units[i]);
+    }
+    for(int i = 0; i < fVar.size(); i++) {
+        this->free.push_back(fVar[i]);
+    }
   }
 
   UnaryNode(std::shared_ptr<DAG<T> > l)
   {
-    branch.initBranch(l);
+    //branch.initBranch(l);
+    child = l;
   }
 
-  UnaryNode(std::shared_ptr<DAG<T> > l, vec<Lit> &unitLit, vec<Var> &freeVar){assignBranch(l, unitLit, freeVar);}
+  UnaryNode(std::shared_ptr<DAG<T> > l, vec<Lit> &unitLit, vec<Var> &freeVar) {
+      assignBranch(l, unitLit, freeVar);
+  }
+
+    UnaryNode(std::shared_ptr<DAG<T> > l, std::vector<Lit> &unitLit, std::vector<Var> &freeVar)
+        : child(l), units(unitLit), free(freeVar) {
+
+    }
 
   inline int getSize_()
   {
     if(stamp == globalStamp) return 0;
     stamp = globalStamp;
-    return branch.d->getSize_();
+    //return branch.d->getSize_();
+    return child->getSize_();
   }
 
   virtual inline bool isUnaryNode() { return true; }
@@ -65,14 +90,23 @@ public:
 
     out << "u " << idxCurrent << " 0" << endl;
 
-    branch.printNNF(out, certif);
-    out << idxCurrent << " " << (branch.d)->getIdx() << " ";
-    Lit *pUnit = &DAG<T>::unitLits[branch.idxUnitLit];
-    for( ; *pUnit != lit_Undef ; pUnit++) out << readableLit(*pUnit) << " ";
+    //branch.printNNF(out, certif);
+    child->printNNF(out, certif);
+
+    //out << idxCurrent << " " << (branch.d)->getIdx() << " ";
+    out << idxCurrent << " " << child->getIdx() << " ";
+    //Lit *pUnit = &DAG<T>::unitLits[branch.idxUnitLit];
+    //for( ; *pUnit != lit_Undef ; pUnit++) out << readableLit(*pUnit) << " ";
+    for(auto const& l : units) {
+        out << readableLit(l) << " ";
+    }
 
     out << "; ";
-    Var* pVar = &DAG<T>::freeVariables[branch.idxFreeVar];
-    for( ; *pVar != var_Undef ; pVar++) out << readableVar(*pVar) << " ";
+    //Var* pVar = &DAG<T>::freeVariables[branch.idxFreeVar];
+    //for( ; *pVar != var_Undef ; pVar++) out << readableVar(*pVar) << " ";
+    for(auto const& v : free) {
+        out << readableVar(v) << " ";
+    }
     out << "0" << endl;
   }// printNNF
 
@@ -80,7 +114,7 @@ public:
   inline bool isSAT()
   {
     if(stamp == globalStamp) return saveDecision;
-    saveDecision = branch.isSAT();
+    //saveDecision = branch.isSAT();
     stamp = globalStamp;
     return saveDecision;
   }// isSAT
@@ -89,7 +123,7 @@ public:
   inline bool isSAT(vec<Lit> &unitsLitBranches)
   {
     if(stamp == globalStamp) return saveDecision;
-    saveDecision = branch.isSAT(unitsLitBranches);
+    //saveDecision = branch.isSAT(unitsLitBranches);
     stamp = globalStamp;
     return saveDecision;
   }// isSAT
@@ -98,7 +132,37 @@ public:
   inline T computeNbModels()
   {
     if(stamp == globalStamp) return nbModels;
-    nbModels = branch.computeNbModels();
+    //nbModels = branch.computeNbModels();
+
+    T computeWeight = 1;
+    for(Lit l : units) {
+        if(!DAG<T>::varProjected[var(l)])
+            continue;
+        char tmp = DAG<T>::fixedValue[var(l)];
+        if(tmp &&
+                (sign(l) + 1) != tmp)
+            return 0;
+
+        computeWeight *= T(DAG<T>::weights[toInt(l)]);
+    }
+    T c = child->computeNbModels();
+
+    for(Var v : free) {
+        if(!DAG<T>::varProjected[v]) continue;
+        switch(DAG<T>::fixedValue[v])
+        {
+            case IS_FALSE :
+                computeWeight *= T(DAG<T>::weights[(v<<1) | 1]);
+                break;
+            case IS_TRUE :
+                computeWeight *= T(DAG<T>::weights[v<<1]);
+                break;
+            default :
+                computeWeight *= T(DAG<T>::weightsVar[v]);
+        }
+    }
+    nbModels = c * computeWeight;
+
     stamp = globalStamp;
     return nbModels;
   }// computeNbModels

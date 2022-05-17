@@ -37,7 +37,7 @@ public:
 
   static std::shared_ptr<DAG<T> > *allChildren;
   static int capSzAllChildren, szAllChildren;
-  vec<bool> comeFromCache;
+  std::vector<bool> comeFromCache;
 
   struct
   {
@@ -45,9 +45,10 @@ public:
     unsigned posInAllChildren:32;
   } header;
 
-  DecomposableAndNodeCertified(std::vector<std::shared_ptr<DAG<T> > > &sons, vec<bool> &comeFromCache_)
+  DecomposableAndNodeCertified(std::vector<std::shared_ptr<DAG<T> > > &sons, std::vector<bool> && comeFromCache_)
   {
-    comeFromCache_.copyTo(comeFromCache);
+    //comeFromCache_.copyTo(comeFromCache);
+    comeFromCache = std::move(comeFromCache_);
     header.szChildren = sons.size();
     header.posInAllChildren = giveMeEmplacementChildren(sons.size());
 

@@ -69,6 +69,7 @@ struct onTheBranch
 template <class T> class DDnnfCompiler
 {
 private:
+    static constexpr bool COMPRESS = true;
     // statistics
     int nbNodeInCompile;
     int nbCallCompile;
@@ -160,11 +161,11 @@ private:
             nbComponent = 1;
         }
 
-        vec<bool> comeFromCache;
+        std::vector<bool> comeFromCache;
         std::shared_ptr<DAG<T> > ret = nullptr;
         if(!nbComponent)
         {
-            comeFromCache.push(false);
+            comeFromCache.push_back(false);
             ret = globalTrueNode; // tautologie modulo unit literal
         }
         else
@@ -183,14 +184,14 @@ private:
 
                 if(localCache && cb.defined && !cb.getValue().expired())
                 {
-                    comeFromCache.push(true);
+                    comeFromCache.push_back(true);
                     andDecomposition.push_back(cb.getValue().lock());
                 }
                 else
                 {
                     // compute priority list
                     vec<Var> currPriority;
-                    comeFromCache.push(false);
+                    comeFromCache.push_back(false);
 
                     stampIdx++;
                     for(int i = 0 ; i<connected.size() ; i++) stampVar[connected[i]] = stampIdx;
@@ -208,6 +209,54 @@ private:
                 occManager->popPreviousClauseSet();
             }
 
+            //compress
+            if(COMPRESS) {
+                std::vector<std::shared_ptr<UnaryNode<T> > > unary;
+
+                for(int i = andDecomposition.size() - 1; i >= 0; i--) {
+                    if(andDecomposition[i]->isUnaryNode()) {
+                        unary.push_back(std::dynamic_pointer_cast<UnaryNode<T> >(andDecomposition[i]));
+                        andDecomposition.erase(andDecomposition.begin() + i);
+                        comeFromCache.erase(comeFromCache.begin() + i);
+                    }
+                }
+
+                std::vector<Var> vFree;
+                std::vector<Lit> vUnit;
+
+                while (!unary.empty()) {
+                    vFree.clear();
+                    vUnit.clear();
+
+                    std::shared_ptr<UnaryNode<T> > u = unary[unary.size() - 1];
+                    unary.pop_back();
+
+                    for(Lit l : u->units) {
+                        vUnit.push_back(l);
+                    }
+                    for(Var v : u->free) {
+                        vFree.push_back(v);
+                    }
+
+                    for(int i = unary.size() - 1; i >= 0; i--) {
+                        if(unary[i]->child == u->child) {
+                            std::shared_ptr<UnaryNode<T> > tmp = unary[i];
+                            unary.erase(unary.begin() + i);
+
+                            for(Lit l : tmp->units) {
+                                vUnit.push_back(l);
+                            }
+                            for(Var v : tmp->free) {
+                                vFree.push_back(v);
+                            }
+                        }
+                    }
+
+                    andDecomposition.push_back(std::make_shared<UnaryNode<T> >(u->child, vUnit, vFree));
+                    comeFromCache.push_back(false);
+                }
+            }
+
             assert(nbComponent);
             if(nbComponent <= 1)
             {
@@ -216,7 +265,7 @@ private:
             }
             else
             {
-                if(isCertified) ret = std::make_shared<DecomposableAndNodeCertified<T> >(andDecomposition, comeFromCache);
+                if(isCertified) ret = std::make_shared<DecomposableAndNodeCertified<T> >(andDecomposition, std::move(comeFromCache));
                 else ret = std::make_shared<DecomposableAndNode<T> >(andDecomposition);
                 nbAndNode++;
 
@@ -311,7 +360,7 @@ private:
         (s.cancelUntil)((s.assumptions).size());
 
         // Compress
-        if(true) {
+        if(COMPRESS) {
             bPos.units.clear();
             bPos.units.push(l);
 
@@ -320,14 +369,17 @@ private:
 
             while (pos->isUnaryNode()) {
                 auto u = std::dynamic_pointer_cast<UnaryNode<T> >(pos);
-                bPos.free.capacity(bPos.free.size() + u->branch.nbFree());
+                bPos.free.capacity(bPos.free.size() + u->free.size());
 
-                Var *vf = &DAG<T>::freeVariables[u->branch.idxFreeVar];
-                for (int i = 0; vf[i] != var_Undef; i++) {
-                    bPos.free.push(vf[i]);
+                //Var *vf = &DAG<T>::freeVariables[u->branch.idxFreeVar];
+                //for (int i = 0; vf[i] != var_Undef; i++) {
+                //    bPos.free.push(vf[i]);
+                //}
+                for(Var v : u->free) {
+                    bPos.free.push(v);
                 }
 
-                if (pos == u->branch.d) {
+                if (pos == u->child) {
                     std::cout << "## pos error " << var(bPos.units[0]) << " (";
                     for (int i = 0; i < bPos.free.size(); i++) {
                         std::cout << " " << i;
@@ -335,18 +387,21 @@ private:
                     std::cout << ")\n";
                     break;
                 }
-                pos = u->branch.d;
+                pos = u->child;
             }
             while (neg->isUnaryNode()) {
                 auto u = std::dynamic_pointer_cast<UnaryNode<T> >(neg);
-                bNeg.free.capacity(bNeg.free.size() + u->branch.nbFree());
+                bNeg.free.capacity(bNeg.free.size() + u->free.size());
 
-                Var *vf = &DAG<T>::freeVariables[u->branch.idxFreeVar];
-                for (int i = 0; vf[i] != var_Undef; i++) {
-                    bNeg.free.push(vf[i]);
+                //Var *vf = &DAG<T>::freeVariables[u->branch.idxFreeVar];
+                //for (int i = 0; vf[i] != var_Undef; i++) {
+                //    bNeg.free.push(vf[i]);
+                //}
+                for(Var v : u->free) {
+                    bNeg.free.push(v);
                 }
 
-                if (neg == u->branch.d) {
+                if (neg == u->child) {
                     std::cout << "## neg error " << var(bNeg.units[0]) << " (";
                     for (int i = 0; i < bNeg.free.size(); i++) {
                         std::cout << " " << i;
@@ -354,22 +409,25 @@ private:
                     std::cout << ")\n";
                     break;
                 }
-                neg = u->branch.d;
+                neg = u->child;
             }
 
             if (neg == pos && bPos.free == bNeg.free) {
                 bPos.units.clear();
                 bPos.free.push(var(l));
                 if (pos->isUnaryNode()) {
-                    UnaryNode<T> u = pos;
-                    bPos.free.capacity(bPos.free.size() + u.branch.nbFree());
+                    auto u = std::dynamic_pointer_cast<UnaryNode<T> >(pos);
+                    bPos.free.capacity(bPos.free.size() + u->free.size());
 
-                    Var *vf = &DAG<T>::freeVariables[u.branch.idxFreeVar];
-                    for (int i = 0; vf[i] != var_Undef; i++) {
-                        bPos.free.push(vf[i]);
+                    //Var *vf = &DAG<T>::freeVariables[u.branch.idxFreeVar];
+                    //for (int i = 0; vf[i] != var_Undef; i++) {
+                    //    bPos.free.push(vf[i]);
+                    //}
+                    for(Var v : u->free) {
+                        bPos.free.push(v);
                     }
 
-                    pos = u.branch.d;
+                    pos = u->child;
                 }
                 auto ret = std::make_shared<UnaryNode<T> >(pos, bPos.units, bPos.free);
                 return ret;
