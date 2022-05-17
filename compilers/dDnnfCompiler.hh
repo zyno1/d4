@@ -255,6 +255,8 @@ private:
                     andDecomposition.push_back(std::make_shared<UnaryNode<T> >(u->child, vUnit, vFree));
                     comeFromCache.push_back(false);
                 }
+
+                nbComponent = andDecomposition.size();
             }
 
             assert(nbComponent);
