@@ -434,6 +434,48 @@ private:
                 auto ret = std::make_shared<UnaryNode<T> >(pos, bPos.units, bPos.free);
                 return ret;
             }
+
+            if(pos->isAndNode()) {
+                auto a = std::dynamic_pointer_cast<DecomposableAndNode<T> >(pos);
+
+                for(int i = a->nb_children() - 1; i >= 0; i--) {
+                    if((*a)[i]->isUnaryNode()) {
+                        auto u = std::dynamic_pointer_cast<UnaryNode<T> >((*a)[i]);
+                        a->erase(i);
+
+                        bPos.free.capacity(bPos.free.size() + u->free.size());
+                        for(auto v : u->free) {
+                            bPos.free.push(v);
+                        }
+                    }
+                }
+
+                if(a->nb_children() == 1) {
+                    pos = (*a)[0];
+                    // comefromcache ???
+                }
+            }
+
+            if(neg->isAndNode()) {
+                auto a = std::dynamic_pointer_cast<DecomposableAndNode<T> >(neg);
+
+                for(int i = a->nb_children() - 1; i >= 0; i--) {
+                    if((*a)[i]->isUnaryNode()) {
+                        auto u = std::dynamic_pointer_cast<UnaryNode<T> >((*a)[i]);
+                        a->erase(i);
+
+                        bNeg.free.capacity(bNeg.free.size() + u->free.size());
+                        for(auto v : u->free) {
+                            bNeg.free.push(v);
+                        }
+                    }
+                }
+
+                if(a->nb_children() == 1) {
+                    neg = (*a)[0];
+                    // comefromcache ???
+                }
+            }
         }
 
         std::shared_ptr<DAG<T> > ret = createObjectDecisionNode(pos, bPos, fromCachePos, neg, bNeg, fromCacheNeg, idxReason);

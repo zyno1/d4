@@ -35,58 +35,71 @@ public:
   using DAG<T>::idxOutputStruct;
   using DAG<T>::stamp;
 
-  static std::shared_ptr<DAG<T> > *allChildren;
-  static int capSzAllChildren, szAllChildren;
+  //static std::shared_ptr<DAG<T> > *allChildren;
+  //static int capSzAllChildren, szAllChildren;
 
-  struct
-  {
-    unsigned szChildren:22;
-    unsigned posInAllChildren:32;
-  } header;
+  //struct
+  //{
+  //  unsigned szChildren:22;
+  //  unsigned posInAllChildren:32;
+  //} header;
+
+  std::vector<std::shared_ptr<DAG<T> > > children;
 
   DecomposableAndNode(std::vector<std::shared_ptr<DAG<T> > > &sons)
   {
-    header.szChildren = sons.size();
-    header.posInAllChildren = giveMeEmplacementChildren(sons.size());
+    //header.szChildren = sons.size();
+    //header.posInAllChildren = giveMeEmplacementChildren(sons.size());
+//
+    //  std::shared_ptr<DAG<T> > *children = &allChildren[header.posInAllChildren];
+    //for(int i = 0 ; i<header.szChildren ; i++) children[i] = sons[i];
+//
+    //nbEdges += header.szChildren;
+    //szAllChildren += sons.size();
 
-      std::shared_ptr<DAG<T> > *children = &allChildren[header.posInAllChildren];
-    for(int i = 0 ; i<header.szChildren ; i++) children[i] = sons[i];
-
-    nbEdges += header.szChildren;
-    szAllChildren += sons.size();
+    children = sons;
+    nbEdges += sons.size();
   }
 
   ~DecomposableAndNode()
   {
-    szAllChildren -= header.szChildren;
-    if(!szAllChildren)
-      {
-        free(allChildren);
-        allChildren = NULL;
-      }
+    //szAllChildren -= header.szChildren;
+    //if(!szAllChildren)
+    //  {
+    //    free(allChildren);
+    //    allChildren = NULL;
+    //  }
   }
+
+    virtual inline bool isAndNode() { return true; }
 
   inline unsigned int giveMeEmplacementChildren(int nbChildren)
   {
-    while(capSzAllChildren < (szAllChildren + nbChildren))
-    {
-      capSzAllChildren += BLOCK_ALLOC_ALL_CHILDREN;
-      allChildren = (std::shared_ptr<DAG<T> > *) realloc(allChildren, capSzAllChildren * sizeof(std::shared_ptr<DAG<T> > ));
-      if(!allChildren)
-      {
-        printf("Memory out bufferInfo %d\n",(int) (capSzAllChildren * sizeof(DAG<T>)));
-        exit(30);
-      }
-    }
-    return szAllChildren;
+    //while(capSzAllChildren < (szAllChildren + nbChildren))
+    //{
+    //  capSzAllChildren += BLOCK_ALLOC_ALL_CHILDREN;
+    //  allChildren = (std::shared_ptr<DAG<T> > *) realloc(allChildren, capSzAllChildren * sizeof(std::shared_ptr<DAG<T> > ));
+    //  if(!allChildren)
+    //  {
+    //    printf("Memory out bufferInfo %d\n",(int) (capSzAllChildren * sizeof(DAG<T>)));
+    //    exit(30);
+    //  }
+    //}
+    //return szAllChildren;
+    return 0;
   }// giveMeEmplacementChildren
 
 
   inline int getSize_()
   {
+    //int cpt = 0;
+    //std::shared_ptr<DAG<T> > *children = &allChildren[header.posInAllChildren];
+    //for(int i = 0 ; i<header.szChildren ; i++) cpt += children[i]->getSize_();
+    //return 1 + cpt;
     int cpt = 0;
-    std::shared_ptr<DAG<T> > *children = &allChildren[header.posInAllChildren];
-    for(int i = 0 ; i<header.szChildren ; i++) cpt += children[i]->getSize_();
+    for(auto const& c : children) {
+        cpt += c->getSize_();
+    }
     return 1 + cpt;
   }
 
@@ -100,19 +113,42 @@ public:
     // out << "a " << idxCurrent << " " << header.szChildren << " 0" << endl;
     out << "a " << idxCurrent << " 0" << endl;
 
-    std::shared_ptr<DAG<T> > *children = &allChildren[header.posInAllChildren];
-    for(int i = 0 ; i<header.szChildren ; i++)
-      {
-        children[i]->printNNF(out, certif);
-        out << idxCurrent << " " << children[i]->getIdx() << " 0" << endl;
-      }
+    //std::shared_ptr<DAG<T> > *children = &allChildren[header.posInAllChildren];
+    //for(int i = 0 ; i<header.szChildren ; i++)
+    //  {
+    //    children[i]->printNNF(out, certif);
+    //    out << idxCurrent << " " << children[i]->getIdx() << " 0" << endl;
+    //  }
+    for(auto const& c : children) {
+        c->printNNF(out, certif);
+        out << idxCurrent << " " << c->getIdx() << " 0" << endl;
+    }
   }// printNNF
 
+  inline int nb_children() {
+      //return header.szChildren;
+      return children.size();
+  }
+
+  std::shared_ptr<DAG<T> >& operator[](int i) {
+      //return (&allChildren[header.posInAllChildren])[i];
+      return children[i];
+  }
+
+  void erase(int i) {
+      children.erase(children.begin() + i);
+  }
 
   inline bool isSAT(vec<Lit> &unitsLitBranches)
   {
-    std::shared_ptr<DAG<T> > *children = &allChildren[header.posInAllChildren];
-    for(int i = 0 ; i < header.szChildren ; i++) if(!children[i]->isSAT(unitsLitBranches)) return false;
+    //std::shared_ptr<DAG<T> > *children = &allChildren[header.posInAllChildren];
+    //for(int i = 0 ; i < header.szChildren ; i++) if(!children[i]->isSAT(unitsLitBranches)) return false;
+    //return true;
+    for(auto const& c : children) {
+        if(!c->isSAT(unitsLitBranches)) {
+            return false;
+        }
+    }
     return true;
   }
 
@@ -120,14 +156,17 @@ public:
   inline T computeNbModels()
   {
     T nbModels = 1;
-    std::shared_ptr<DAG<T> > *children = &allChildren[header.posInAllChildren];
-    for(int i = 0 ; i < header.szChildren ; i++) nbModels *= children[i]->computeNbModels();
+    //std::shared_ptr<DAG<T> > *children = &allChildren[header.posInAllChildren];
+    //for(int i = 0 ; i < header.szChildren ; i++) nbModels *= children[i]->computeNbModels();
+    for(auto const& c : children) {
+        nbModels *= c->computeNbModels();
+    }
     return nbModels;
   }// computeNbModels
 };
 
 // initialize the static attributs
-template<typename T> int DecomposableAndNode<T>::capSzAllChildren{0};
-template<typename T> int DecomposableAndNode<T>::szAllChildren{0};
-template<typename T> std::shared_ptr<DAG<T> > *DecomposableAndNode<T>::allChildren{NULL};
+//template<typename T> int DecomposableAndNode<T>::capSzAllChildren{0};
+//template<typename T> int DecomposableAndNode<T>::szAllChildren{0};
+//template<typename T> std::shared_ptr<DAG<T> > *DecomposableAndNode<T>::allChildren{NULL};
 #endif
