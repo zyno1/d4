@@ -202,6 +202,12 @@ void printCNFtoDimacs(vec<vec<Lit> > &clauses, int nbVar)
  */
 int main(int argc, char** argv)
 {
+  if(DDnnfCompiler<mpz_int>::COMPRESS) {
+    std::cout << "c " << "\033[1m\033[31m" << "compressing" << "\033[0m\n";
+  }
+  else {
+    std::cout << "c " << "\033[1m\033[31m" << "NOT compressing" << "\033[0m\n";
+  }
   setUsageHelp("USAGE: %s <input-file> [options]\n\n  where input may be either in plain or gzipped DIMACS.\n");
   BoolOption modelCounter("MAIN", "mc", "Only compute the number of model\n", false);
   BoolOption dDNNF("MAIN", "dDNNF", "Compile the problem into a decision-DNNF formula\n", false);

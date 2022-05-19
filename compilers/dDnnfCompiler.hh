@@ -68,8 +68,9 @@ struct onTheBranch
 
 template <class T> class DDnnfCompiler
 {
-private:
+public:
     static constexpr bool COMPRESS = true;
+private:
     // statistics
     int nbNodeInCompile;
     int nbCallCompile;
@@ -369,59 +370,17 @@ private:
             bNeg.units.clear();
             bNeg.units.push(~l);
 
-            while (pos->isUnaryNode()) {
-                auto u = std::dynamic_pointer_cast<UnaryNode<T> >(pos);
-                bPos.free.capacity(bPos.free.size() + u->free.size());
+            bool modif = true;
 
-                //Var *vf = &DAG<T>::freeVariables[u->branch.idxFreeVar];
-                //for (int i = 0; vf[i] != var_Undef; i++) {
-                //    bPos.free.push(vf[i]);
-                //}
-                for(Var v : u->free) {
-                    bPos.free.push(v);
-                }
+            while(modif) {
+                modif = false;
 
-                if (pos == u->child) {
-                    std::cout << "## pos error " << var(bPos.units[0]) << " (";
-                    for (int i = 0; i < bPos.free.size(); i++) {
-                        std::cout << " " << i;
-                    }
-                    std::cout << ")\n";
-                    break;
-                }
-                pos = u->child;
-            }
-            while (neg->isUnaryNode()) {
-                auto u = std::dynamic_pointer_cast<UnaryNode<T> >(neg);
-                bNeg.free.capacity(bNeg.free.size() + u->free.size());
-
-                //Var *vf = &DAG<T>::freeVariables[u->branch.idxFreeVar];
-                //for (int i = 0; vf[i] != var_Undef; i++) {
-                //    bNeg.free.push(vf[i]);
-                //}
-                for(Var v : u->free) {
-                    bNeg.free.push(v);
-                }
-
-                if (neg == u->child) {
-                    std::cout << "## neg error " << var(bNeg.units[0]) << " (";
-                    for (int i = 0; i < bNeg.free.size(); i++) {
-                        std::cout << " " << i;
-                    }
-                    std::cout << ")\n";
-                    break;
-                }
-                neg = u->child;
-            }
-
-            if (neg == pos && bPos.free == bNeg.free) {
-                bPos.units.clear();
-                bPos.free.push(var(l));
-                if (pos->isUnaryNode()) {
+                while (pos->isUnaryNode()) {
+                    modif = true;
                     auto u = std::dynamic_pointer_cast<UnaryNode<T> >(pos);
                     bPos.free.capacity(bPos.free.size() + u->free.size());
 
-                    //Var *vf = &DAG<T>::freeVariables[u.branch.idxFreeVar];
+                    //Var *vf = &DAG<T>::freeVariables[u->branch.idxFreeVar];
                     //for (int i = 0; vf[i] != var_Undef; i++) {
                     //    bPos.free.push(vf[i]);
                     //}
@@ -429,51 +388,103 @@ private:
                         bPos.free.push(v);
                     }
 
+                    if (pos == u->child) {
+                        std::cout << "## pos error " << var(bPos.units[0]) << " (";
+                        for (int i = 0; i < bPos.free.size(); i++) {
+                            std::cout << " " << i;
+                        }
+                        std::cout << ")\n";
+                        break;
+                    }
                     pos = u->child;
                 }
-                auto ret = std::make_shared<UnaryNode<T> >(pos, bPos.units, bPos.free);
-                return ret;
-            }
+                while (neg->isUnaryNode()) {
+                    modif = true;
+                    auto u = std::dynamic_pointer_cast<UnaryNode<T> >(neg);
+                    bNeg.free.capacity(bNeg.free.size() + u->free.size());
 
-            if(pos->isAndNode()) {
-                auto a = std::dynamic_pointer_cast<DecomposableAndNode<T> >(pos);
+                    //Var *vf = &DAG<T>::freeVariables[u->branch.idxFreeVar];
+                    //for (int i = 0; vf[i] != var_Undef; i++) {
+                    //    bNeg.free.push(vf[i]);
+                    //}
+                    for(Var v : u->free) {
+                        bNeg.free.push(v);
+                    }
 
-                for(int i = a->nb_children() - 1; i >= 0; i--) {
-                    if((*a)[i]->isUnaryNode()) {
-                        auto u = std::dynamic_pointer_cast<UnaryNode<T> >((*a)[i]);
-                        a->erase(i);
+                    if (neg == u->child) {
+                        std::cout << "## neg error " << var(bNeg.units[0]) << " (";
+                        for (int i = 0; i < bNeg.free.size(); i++) {
+                            std::cout << " " << i;
+                        }
+                        std::cout << ")\n";
+                        break;
+                    }
+                    neg = u->child;
+                }
 
+                if (neg == pos && bPos.free == bNeg.free) {
+                    bPos.units.clear();
+                    bPos.free.push(var(l));
+                    if (pos->isUnaryNode()) {
+                        auto u = std::dynamic_pointer_cast<UnaryNode<T> >(pos);
                         bPos.free.capacity(bPos.free.size() + u->free.size());
-                        for(auto v : u->free) {
+
+                        //Var *vf = &DAG<T>::freeVariables[u.branch.idxFreeVar];
+                        //for (int i = 0; vf[i] != var_Undef; i++) {
+                        //    bPos.free.push(vf[i]);
+                        //}
+                        for(Var v : u->free) {
                             bPos.free.push(v);
                         }
+
+                        pos = u->child;
                     }
+                    auto ret = std::make_shared<UnaryNode<T> >(pos, bPos.units, bPos.free);
+                    return ret;
                 }
 
-                if(a->nb_children() == 1) {
-                    pos = (*a)[0];
-                    // comefromcache ???
-                }
-            }
+                if(pos->isAndNode()) {
+                    modif = true;
+                    auto a = std::dynamic_pointer_cast<DecomposableAndNode<T> >(pos);
 
-            if(neg->isAndNode()) {
-                auto a = std::dynamic_pointer_cast<DecomposableAndNode<T> >(neg);
+                    for(int i = a->nb_children() - 1; i >= 0; i--) {
+                        if((*a)[i]->isUnaryNode()) {
+                            auto u = std::dynamic_pointer_cast<UnaryNode<T> >((*a)[i]);
+                            a->erase(i);
 
-                for(int i = a->nb_children() - 1; i >= 0; i--) {
-                    if((*a)[i]->isUnaryNode()) {
-                        auto u = std::dynamic_pointer_cast<UnaryNode<T> >((*a)[i]);
-                        a->erase(i);
-
-                        bNeg.free.capacity(bNeg.free.size() + u->free.size());
-                        for(auto v : u->free) {
-                            bNeg.free.push(v);
+                            bPos.free.capacity(bPos.free.size() + u->free.size());
+                            for(auto v : u->free) {
+                                bPos.free.push(v);
+                            }
                         }
                     }
+
+                    if(a->nb_children() == 1) {
+                        pos = (*a)[0];
+                        // comefromcache ???
+                    }
                 }
 
-                if(a->nb_children() == 1) {
-                    neg = (*a)[0];
-                    // comefromcache ???
+                if(neg->isAndNode()) {
+                    modif = true;
+                    auto a = std::dynamic_pointer_cast<DecomposableAndNode<T> >(neg);
+
+                    for(int i = a->nb_children() - 1; i >= 0; i--) {
+                        if((*a)[i]->isUnaryNode()) {
+                            auto u = std::dynamic_pointer_cast<UnaryNode<T> >((*a)[i]);
+                            a->erase(i);
+
+                            bNeg.free.capacity(bNeg.free.size() + u->free.size());
+                            for(auto v : u->free) {
+                                bNeg.free.push(v);
+                            }
+                        }
+                    }
+
+                    if(a->nb_children() == 1) {
+                        neg = (*a)[0];
+                        // comefromcache ???
+                    }
                 }
             }
         }
