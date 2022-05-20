@@ -444,11 +444,11 @@ private:
                 }
 
                 if(pos->isAndNode()) {
-                    modif = true;
                     auto a = std::dynamic_pointer_cast<DecomposableAndNode<T> >(pos);
 
                     for(int i = a->nb_children() - 1; i >= 0; i--) {
                         if((*a)[i]->isUnaryNode()) {
+                            modif = true;
                             auto u = std::dynamic_pointer_cast<UnaryNode<T> >((*a)[i]);
                             a->erase(i);
 
@@ -460,17 +460,18 @@ private:
                     }
 
                     if(a->nb_children() == 1) {
+                        modif = true;
                         pos = (*a)[0];
                         // comefromcache ???
                     }
                 }
 
                 if(neg->isAndNode()) {
-                    modif = true;
                     auto a = std::dynamic_pointer_cast<DecomposableAndNode<T> >(neg);
 
                     for(int i = a->nb_children() - 1; i >= 0; i--) {
                         if((*a)[i]->isUnaryNode()) {
+                            modif = true;
                             auto u = std::dynamic_pointer_cast<UnaryNode<T> >((*a)[i]);
                             a->erase(i);
 
@@ -482,6 +483,7 @@ private:
                     }
 
                     if(a->nb_children() == 1) {
+                        modif = true;
                         neg = (*a)[0];
                         // comefromcache ???
                     }
