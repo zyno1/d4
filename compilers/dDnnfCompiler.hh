@@ -362,6 +362,7 @@ private:
         (s.assumptions).pop();
         (s.cancelUntil)((s.assumptions).size());
 
+
         // Compress
         if(COMPRESS) {
             bPos.units.clear();
@@ -407,7 +408,7 @@ private:
                     //for (int i = 0; vf[i] != var_Undef; i++) {
                     //    bNeg.free.push(vf[i]);
                     //}
-                    for(Var v : u->free) {
+                    for (Var v: u->free) {
                         bNeg.free.push(v);
                     }
 
@@ -422,26 +423,7 @@ private:
                     neg = u->child;
                 }
 
-                if (neg == pos && bPos.free == bNeg.free) {
-                    bPos.units.clear();
-                    bPos.free.push(var(l));
-                    if (pos->isUnaryNode()) {
-                        auto u = std::dynamic_pointer_cast<UnaryNode<T> >(pos);
-                        bPos.free.capacity(bPos.free.size() + u->free.size());
-
-                        //Var *vf = &DAG<T>::freeVariables[u.branch.idxFreeVar];
-                        //for (int i = 0; vf[i] != var_Undef; i++) {
-                        //    bPos.free.push(vf[i]);
-                        //}
-                        for(Var v : u->free) {
-                            bPos.free.push(v);
-                        }
-
-                        pos = u->child;
-                    }
-                    auto ret = std::make_shared<UnaryNode<T> >(pos, bPos.units, bPos.free);
-                    return ret;
-                }
+                //continue;
 
                 if(pos->isAndNode()) {
                     auto a = std::dynamic_pointer_cast<DecomposableAndNode<T> >(pos);
@@ -450,7 +432,13 @@ private:
                         if((*a)[i]->isUnaryNode()) {
                             modif = true;
                             auto u = std::dynamic_pointer_cast<UnaryNode<T> >((*a)[i]);
-                            a->erase(i);
+                            if(u->child == globalTrueNode) {
+                                a->erase(i);
+                            }
+                            else {
+                                (*a)[i] = u->child;
+                            }
+                            //(*a)[i] = u->child;
 
                             bPos.free.capacity(bPos.free.size() + u->free.size());
                             for(auto v : u->free) {
@@ -473,7 +461,13 @@ private:
                         if((*a)[i]->isUnaryNode()) {
                             modif = true;
                             auto u = std::dynamic_pointer_cast<UnaryNode<T> >((*a)[i]);
-                            a->erase(i);
+                            if(u->child == globalTrueNode) {
+                                a->erase(i);
+                            }
+                            else {
+                                (*a)[i] = u->child;
+                            }
+                            //(*a)[i] = u->child;
 
                             bNeg.free.capacity(bNeg.free.size() + u->free.size());
                             for(auto v : u->free) {
@@ -488,6 +482,36 @@ private:
                         // comefromcache ???
                     }
                 }
+            }
+
+            if (neg == pos && bPos.free == bNeg.free) {
+                bPos.units.clear();
+                bPos.free.push(var(l));
+                if (pos->isUnaryNode()) {
+                    auto u = std::dynamic_pointer_cast<UnaryNode<T> >(pos);
+                    bPos.free.capacity(bPos.free.size() + u->free.size());
+
+                    //Var *vf = &DAG<T>::freeVariables[u.branch.idxFreeVar];
+                    //for (int i = 0; vf[i] != var_Undef; i++) {
+                    //    bPos.free.push(vf[i]);
+                    //}
+                    for(Var v : u->free) {
+                        bPos.free.push(v);
+                    }
+
+                    pos = u->child;
+                }
+                auto ret = std::make_shared<UnaryNode<T> >(pos, bPos.units, bPos.free);
+                return ret;
+            }
+
+            if(neg == globalFalseNode) {
+                auto ret = std::make_shared<UnaryNode<T> >(pos, bPos.units, bPos.free);
+                return ret;
+            }
+            if(pos == globalFalseNode) {
+                auto ret = std::make_shared<UnaryNode<T> >(neg, bNeg.units, bNeg.free);
+                return ret;
             }
         }
 
