@@ -1,0 +1,28 @@
+BootStrap: docker
+From: ubuntu:22.04
+
+%files
+    ../wrapper /wrapper
+    ../d4 /d4
+
+%post
+    echo "setup start"
+    apt-get -y update
+
+    #apt-get -y full-upgrade
+    #apt-get -y install tzdata
+    #apt-get -y install g++ make zlib1g-dev libboost-dev libgmp-dev libgmpxx4ldbl
+
+    apt-get -y install zlib1g-dev libboost-dev libgmp-dev libgmpxx4ldbl git make gcc g++
+
+    cd /d4
+    make -j8
+
+    cd /wrapper
+    make -j8
+
+    ls
+    echo "setup done"
+
+%runscript
+    /wrapper/wrap 64000 18000 /d4/d4 "$@"

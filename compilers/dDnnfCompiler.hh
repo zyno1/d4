@@ -69,7 +69,7 @@ struct onTheBranch
 template <class T> class DDnnfCompiler
 {
 public:
-    static constexpr bool COMPRESS = true;
+    static constexpr bool COMPRESS = false;
 private:
     // statistics
     int nbNodeInCompile;
