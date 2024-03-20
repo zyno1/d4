@@ -199,8 +199,9 @@ private:
                     bool propagatePriority = 1 || onB.units.size() < (setOfVar.size() / 10);
 
                     for(int i = 0 ; propagatePriority && i<priorityVar.size() ; i++)
-                        if(stampVar[priorityVar[i]] == stampIdx && s.value(priorityVar[i]) == l_Undef)
+                        if(stampVar[priorityVar[i]] == stampIdx && s.value(priorityVar[i]) == l_Undef && DAG<T>::varProjected[priorityVar[i]]) {
                             currPriority.push(priorityVar[i]);
+                        }
 
                     ret = compileDecisionNode(connected, currPriority);
                     andDecomposition.push_back(ret);
@@ -339,6 +340,9 @@ private:
 
         Var v = var_Undef;
         if(priorityVar.size()) v = vs->selectVariable(priorityVar); else v = vs->selectVariable(connected);
+        // PATCH:
+        if(v == var_Undef && priorityVar.size() > 0 && priorityVar.size() < connected.size()) v = vs->selectVariable(connected);
+        assert(priorityVar.size() == 0 || v != var_Undef);
         if(v == var_Undef) return createTrueNode(connected);
 
         Lit l = mkLit(v, optReversePolarity - vs->selectPhase(v));
