@@ -27,4 +27,4 @@ From: ubuntu:22.04
     echo "setup done"
 
 %runscript
-    /wrapper/wrap 64000 18000 /d4/d4 "$@"
+    /wrapper/wrap 8000 3600 /d4/d4 "$@"
